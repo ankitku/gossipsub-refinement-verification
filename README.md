@@ -58,14 +58,9 @@ Key contributions include:
 
 - A formal LTS (labelled transition system) model of both Broadcastsub and
   Floodsub in ACL2s.
-- A skipping refinement map from *fnet* to *bnet*, with machine-checked proofs
+- A refinement map from *fnet* to *bnet*, with machine-checked proofs
   of all simulation obligations.
-- A formally defined **temporal connectedness predicate** (`TConnectedp`) — the
-  minimal connectivity assumption required for correct flooding — under which
-  the refinement holds. To our knowledge, this is the first formal treatment of
-  temporal connectedness as an explicit predicate on protocol executions.
-- A discussion arguing that `TConnectedp` holds with high probability under
-  realistic network churn, calibrated to empirical Ethereum P2P measurements.
+- Proof of Stuttering simulation refinement. 
 
 **Requirements:** ACL2s.
 
@@ -101,10 +96,12 @@ The overall structure of the thesis argument is a refinement chain:
 
 ```
 Broadcastsub (bnet)   ←— abstract specification
+       ↑                                              
+   Floodsub (queue based), Fnet (set based)    ←— refinement proved in ACL2s for the set based version of Floodsub
        ↑
-   Floodsub (fnet)    ←— refinement proved in ACL2s (this repo)
-       ↑
-  Gossipsub / MeshSub ←— formal model + parameter study (this repo)
+    MeshSub           ←— formal model + paper-pencil proof + parameter study (this repo)
+
+   Gossipsub          ←— Property-based testing, Counter-example generation based disproof of refinement
 ```
 
 Each level is related to the one above it by a formally verified or formally
@@ -115,13 +112,14 @@ propagate downward, contingent on the temporal connectedness condition.
 
 ## Publications
 
-- **IEEE S&P 2024** — Formal Model-Driven Analysis of Resilience of GossipSub
-  to Attacks from Misbehaving Peers
+
 - **ACL2 Workshop 2025** *(Best Student Paper)* — A Formalization of the
   Correctness of the Floodsub Protocol
+- **IEEE S&P 2024** — Formal Model-Driven Analysis of Resilience of GossipSub
+  to Attacks from Misbehaving Peers
 - **ACL2 Workshop 2023** *(Best Student Paper)* — Verification of Gossipsub
   in ACL2s
-
+- **Meshsub parameter study paper** - Paper under review (anonymized)
 ---
 
 ## Citation
