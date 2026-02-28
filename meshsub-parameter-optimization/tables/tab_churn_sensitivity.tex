@@ -1,0 +1,19 @@
+\begin{table}[t]
+      \centering
+      \caption{Delivery rate by churn level for Gossipsub ($D{=}8$, $\Dlazy{=}1$)
+            compared to Floodsub ($D{=}60$, $\Dlazy{=}0$). Gossipsub achieves
+            higher delivery at every churn level $>$0\%.}
+      \label{tab:churn-sensitivity}
+      \begin{tabular}{ccccc}
+            \toprule
+            \textbf{Churn} & \textbf{GS(8,1)} & \textbf{GS(8,1)} & \textbf{Floodsub} & \textbf{Floodsub} \\
+                           & \textbf{Delivery} & \textbf{p99}     & \textbf{Delivery} & \textbf{p99}      \\
+            \midrule
+            0\% & 100.0\% & 0.7\,s & 100.0\% & 0.3\,s \\
+            10\% & 98.5\% & 0.7\,s & 97.1\% & 0.3\,s \\
+            20\% & 96.9\% & 2.5\,s & 95.2\% & 0.3\,s \\
+            30\% & 97.0\% & 13.0\,s & 93.3\% & 0.4\,s \\
+            40\% & 98.0\% & 17.0\,s & 91.8\% & 0.4\,s \\
+            \bottomrule
+      \end{tabular}
+\end{table}

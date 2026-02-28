@@ -1,0 +1,382 @@
+\documentclass{article}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\include{imports}
+
+\begin{document}
+
+\section{Simulation Algorithm}
+
+
+Following algorithm describes the discrete-event simulation loop.
+Each tick processes events in a fixed order to ensure deterministic execution.
+
+\begin{algorithm}[H]
+\caption{Gossipsub Simulation Main Loop}
+\label{alg:simulation}
+\begin{algorithmic}[1]
+\Require Network parameters $(n, D, \Dlazy, c)$, simulation length $T$, warmup $T_w$
+\Ensure Metrics $(\bar{\delta}, \beta_{\mathit{norm}}, \mathit{p99})$
+
+\State Initialize $n$ peers with peer tables of size $[40, 80]$
+\State Initialize eager mesh $\mathcal{M}_p$ and gossip peers $\mathcal{L}_p$ for each peer $p$
+\State $t \gets 0$
+
+\While{$t < T_w + T$}
+    \State \Call{RefillTokenBuckets}{} \Comment{Bandwidth accounting}
+    \State \Call{ProduceMessages}{$t$} \Comment{Poisson arrivals}
+    \State \Call{ProcessDeliveries}{$t$} \Comment{Scheduled network arrivals}
+    \State \Call{ProcessChurn}{$t$} \Comment{Bimodal leave/rejoin}
+    \State \Call{EnforceBandwidth}{$t$} \Comment{Drop excess messages}
+    \If{$t \mod 10 = 0$} \Comment{Heartbeat every 1 second}
+        \State \Call{EmitGossip}{$t$} \Comment{IHAVE announcements}
+        \State \Call{MaintainMesh}{$t$} \Comment{GRAFT/PRUNE}
+    \EndIf
+    \State $t \gets t + 1$
+    \If{$t = T_w$}
+        \State Reset all counters \Comment{End of warmup}
+    \EndIf
+\EndWhile
+
+\State \Return \Call{ComputeMetrics}{}
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Token Bucket Refill}
+\label{alg:refill}
+\begin{algorithmic}[1]
+\Procedure{RefillTokenBuckets}{}
+\ForAll{peer $p$}
+    \State $p.\mathit{tokens} \gets \min\bigl(B/8, \; p.\mathit{tokens} + B \cdot \Delta t / 8\bigr)$
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------------------------------------------
+
+% -----------------------------------------------------------------------------
+
+\begin{algorithm}[H]
+\caption{Message Production}
+\label{alg:produce}
+\begin{algorithmic}[1]
+\Procedure{ProduceMessages}{$t$}
+\ForAll{online peer $p$}
+    \State $\lambda \gets v_p / 384$ \Comment{$v_p$ validators, one attestation per epoch}
+    \State $p_{\mathit{pub}} \gets 1 - e^{-\lambda \cdot \Delta t}$ \Comment{Poisson probability}
+    \If{$\mathit{Uniform}(0,1) < p_{\mathit{pub}}$}
+        \State $m \gets$ new message with $\mathit{origin}=p$, $t_m=t$
+        \State $p.\mathit{seen} \gets p.\mathit{seen} \cup \{m\}$
+        \State $p.\mathit{mcache} \gets p.\mathit{mcache} \cup \{m\}$
+        \State $p.\mathit{delivered} \gets p.\mathit{delivered} \cup \{m\}$
+        \ForAll{$q \in p.\mathcal{M}$} \Comment{Eager forward to mesh}
+            \If{$\omega_q = \mathsf{online}$}
+                \State Schedule delivery of $m$ from $p$ to $q$ at tick $t + \Call{Delay}{p, q}$
+            \EndIf
+        \EndFor
+    \EndIf
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------------------------------------------
+
+\begin{algorithm}[H]
+\caption{Process Scheduled Deliveries}
+\label{alg:deliver}
+\begin{algorithmic}[1]
+\Procedure{ProcessDeliveries}{$t$}
+\ForAll{$(m, \mathit{sender})$ scheduled for delivery to peer $p$ at tick $t$}
+    \If{$\omega_p = \mathsf{offline}$}
+        \State \textbf{continue} \Comment{Drop: peer offline}
+    \EndIf
+    \If{$m \in p.\mathit{seen}$}
+        \State \textbf{continue} \Comment{Duplicate: already processed}
+    \EndIf
+    \State $p.\mathit{seen} \gets p.\mathit{seen} \cup \{m\}$
+    \State $p.\mathit{mcache} \gets p.\mathit{mcache} \cup \{m\}$
+    \State $p.\mathit{delivered} \gets p.\mathit{delivered} \cup \{m\}$ \Comment{Persistent record}
+    \State Record $t_{m,p} \gets t$ \Comment{For latency measurement}
+    \ForAll{$q \in p.\mathcal{M} \setminus \{\mathit{sender}\}$} \Comment{Eager forward to mesh}
+        \If{$\omega_q = \mathsf{online}$}
+            \State Schedule delivery of $m$ from $p$ to $q$ at tick $t + \Call{Delay}{p, q}$
+        \EndIf
+    \EndFor
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------------------------------------------
+
+\begin{algorithm}[H]
+\caption{Network Delay Model}
+\label{alg:delay}
+\begin{algorithmic}[1]
+\Function{Delay}{$p$, $q$}
+    \State $r_p, r_q \gets$ regions of peers $p$ and $q$
+    \State $(\mu, \sigma) \gets \mathit{LatencyTable}[r_p, r_q]$ \Comment{See Table~\ref{tab:regional-latency}}
+    \State $d \gets \max(0.01, \mathcal{N}(\mu, \sigma^2))$ \Comment{Sample, clip to 10ms minimum}
+    \State \Return $\lceil d / \Delta t \rceil$ \Comment{Convert seconds to ticks}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------------------------------------------
+
+\begin{algorithm}[H]
+\caption{Bimodal Churn Model}
+\label{alg:churn}
+\begin{algorithmic}[1]
+\Procedure{ProcessChurn}{$t$}
+\ForAll{peer $p$}
+    \If{$p.\mathit{type} = \mathsf{churny}$}
+        \State $\lambda_{\mathit{leave}} \gets 0.01$, \quad $\lambda_{\mathit{rejoin}} \gets 0.05$
+    \Else
+        \State $\lambda_{\mathit{leave}} \gets 0$, \quad $\lambda_{\mathit{rejoin}} \gets 0$ \Comment{Stable peers never leave}
+    \EndIf
+    
+    \If{$\omega_p = \mathsf{online}$ \textbf{and} $\mathit{Uniform}(0,1) < \lambda_{\mathit{leave}}$}
+        \State $\omega_p \gets \mathsf{offline}$
+        \State Clear $p.\mathcal{M}$, $p.\mathcal{L}$ \Comment{Mesh connections lost}
+    \ElsIf{$\omega_p = \mathsf{offline}$ \textbf{and} $\mathit{Uniform}(0,1) < \lambda_{\mathit{rejoin}}$}
+        \State $\omega_p \gets \mathsf{online}$
+    \State Clear $p.\mathit{seen}$, $p.\mathit{mcache}$ \Comment{State reset on rejoin}
+    \EndIf
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------------------------------------------
+
+\begin{algorithm}[H]
+\caption{Bandwidth Enforcement}
+\label{alg:bandwidth}
+\begin{algorithmic}[1]
+\Procedure{EnforceBandwidth}{$t$}
+\ForAll{message $m$ from sender $s$ scheduled for delivery at tick $t+1$}
+    \State $\mathit{size} \gets |m|$ \Comment{Payload or control message size}
+    \If{$s.\mathit{tokens} < \mathit{size}$}
+        \State Remove $m$ from schedule \Comment{Drop: insufficient bandwidth}
+    \Else
+        \State $s.\mathit{tokens} \gets s.\mathit{tokens} - \mathit{size}$
+        \If{$m$ is payload}
+            \State $s.B^{\pld} \gets s.B^{\pld} + \mathit{size}$
+        \Else
+            \State $s.B^{\ctrl} \gets s.B^{\ctrl} + \mathit{size}$
+        \EndIf
+    \EndIf
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------------------------------------------
+
+\begin{algorithm}[H]
+\caption{Gossip Emission (\IHAVE)}
+\label{alg:gossip}
+\begin{algorithmic}[1]
+\Procedure{EmitGossip}{$t$}
+\ForAll{online peer $p$}
+    \State $\mathit{ids} \gets$ message IDs in $p.\mathit{mcache}$ from last 3 heartbeats
+    \If{$\mathit{ids} = \emptyset$}
+        \State \textbf{continue}
+    \EndIf
+    \State $k \gets \min(\Dlazy, |p.\mathcal{L}|)$
+    \State $\mathit{targets} \gets$ sample $k$ peers uniformly from $p.\mathcal{L}$
+    \ForAll{$q \in \mathit{targets}$}
+        \If{$\omega_q = \mathsf{online}$}
+            \State Schedule $\IHAVE(\mathit{ids})$ from $p$ to $q$ at tick $t + \Call{Delay}{p, q}$
+        \EndIf
+    \EndFor
+    \State Advance $p.\mathit{mcache}$ window \Comment{Expire old entries}
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------------------------------------------
+
+\begin{algorithm}[H]
+\caption{Process \IHAVE / \IWANT}
+\label{alg:ihave-iwant}
+\begin{algorithmic}[1]
+\Procedure{ProcessIHAVE}{$p$, $\mathit{ids}$, $\mathit{sender}$}
+    \State $\mathit{missing} \gets \mathit{ids} \setminus p.\mathit{seen}$
+    \If{$\mathit{missing} \neq \emptyset$}
+        \State Schedule $\IWANT(\mathit{missing})$ from $p$ to $\mathit{sender}$ at tick $t + \Call{Delay}{p, \mathit{sender}}$
+    \EndIf
+\EndProcedure
+
+\Procedure{ProcessIWANT}{$p$, $\mathit{ids}$, $\mathit{requester}$}
+    \ForAll{$\mathit{mid} \in \mathit{ids}$}
+        \If{$\mathit{mid} \in p.\mathit{mcache}$}
+            \State $m \gets p.\mathit{mcache}[\mathit{mid}]$
+            \State Schedule delivery of $m$ from $p$ to $\mathit{requester}$ at tick $t + \Call{Delay}{p, \mathit{requester}}$
+        \EndIf
+    \EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------------------------------------------
+
+\begin{algorithm}[H]
+\caption{Mesh Maintenance (\GRAFT / \PRUNE)}
+\label{alg:mesh}
+\begin{algorithmic}[1]
+\Procedure{MaintainMesh}{$t$}
+\ForAll{online peer $p$}
+    \State $p.\mathcal{M} \gets \{q \in p.\mathcal{M} : \omega_q = \mathsf{online}\}$ \Comment{Remove offline peers}
+    
+    \If{$|p.\mathcal{M}| < D - 2$} \Comment{Below $D_{\mathit{lo}}$: graft}
+        \State $k \gets D - |p.\mathcal{M}|$
+        \State $\mathit{candidates} \gets \{q \in p.\mathit{table} \setminus p.\mathcal{M} : \omega_q = \mathsf{online}\}$
+        \State $\mathit{new} \gets$ sample $\min(k, |\mathit{candidates}|)$ peers from $\mathit{candidates}$
+        \ForAll{$q \in \mathit{new}$}
+            \State $p.\mathcal{M} \gets p.\mathcal{M} \cup \{q\}$
+            \State Schedule $\GRAFT(p)$ to $q$ at tick $t + \Call{Delay}{p, q}$
+        \EndFor
+    \ElsIf{$|p.\mathcal{M}| > D + 2$} \Comment{Above $D_{\mathit{hi}}$: prune}
+        \State $k \gets |p.\mathcal{M}| - D$
+        \State $\mathit{excess} \gets$ sample $k$ peers from $p.\mathcal{M}$
+        \ForAll{$q \in \mathit{excess}$}
+            \State $p.\mathcal{M} \gets p.\mathcal{M} \setminus \{q\}$
+            \State Schedule $\PRUNE(p)$ to $q$ at tick $t + \Call{Delay}{p, q}$
+        \EndFor
+    \EndIf
+    
+    \State \Comment{Update lazy mesh from remaining non-eager peers}
+    \State $p.\mathcal{L} \gets$ sample $\Dlazy$ peers from $\{q \in p.\mathit{table} \setminus p.\mathcal{M} : \omega_q = \mathsf{online}\}$
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------------------------------------------
+
+\begin{algorithm}[H]
+\caption{Process \GRAFT / \PRUNE}
+\label{alg:graft-prune}
+\begin{algorithmic}[1]
+\Procedure{ProcessGRAFT}{$p$, $\mathit{requester}$}
+    \If{$\mathit{requester} \in p.\mathit{table}$ \textbf{and} $\omega_{\mathit{requester}} = \mathsf{online}$}
+        \State $p.\mathcal{M} \gets p.\mathcal{M} \cup \{\mathit{requester}\}$
+        \State $p.\mathcal{L} \gets p.\mathcal{L} \setminus \{\mathit{requester}\}$
+    \EndIf
+\EndProcedure
+
+\Procedure{ProcessPRUNE}{$p$, $\mathit{requester}$}
+    \State $p.\mathcal{M} \gets p.\mathcal{M} \setminus \{\mathit{requester}\}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------------------------------------------
+
+\begin{algorithm}[H]
+\caption{Compute Final Metrics}
+\label{alg:metrics}
+\begin{algorithmic}[1]
+\Function{ComputeMetrics}{}
+    \State \Comment{Delivery set for message $m$: peers that received it}
+    \State $R_m \gets \{p \in V : m \in p.\mathit{delivered}\}$
+    
+    \State \Comment{Delivery rate: fraction of all peers that received each message}
+    \State $\bar{\delta} \gets \frac{1}{|M|} \sum_{m \in M} \frac{|R_m|}{|V|}$
+    
+    \State \Comment{Total bandwidth}
+    \State $B_{\mathit{total}} \gets \sum_{p \in V} \bigl(p.B^{\pld} + p.B^{\ctrl}\bigr)$
+    
+    \State \Comment{Bytes per delivery}
+    \State $\mathit{deliveries} \gets \sum_{m \in M} |R_m|$
+    \State $\beta \gets B_{\mathit{total}} / \mathit{deliveries}$
+    
+    \State \Comment{Normalized cost}
+    \State $\beta_{\mathit{norm}} \gets \beta / P$ \Comment{$P = 1536$ bytes}
+    
+    \State \Comment{p99 latency over all successful deliveries}
+    \State $L \gets \{(t_{m,p} - t_m) \cdot \Delta t : m \in M, \, p \in R_m\}$
+    \State $p99 \gets \mathit{Percentile}_{99}(L)$
+    
+    \State \Return $(\bar{\delta}, \beta_{\mathit{norm}}, p99)$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+% =============================================================================
+% PARETO ANALYSIS ALGORITHM
+% =============================================================================
+
+\section{Pareto Dominance Analysis}
+\label{sec:pareto-algorithm}
+
+\begin{definition}[Pareto Dominance]
+      Configuration $A$ \emph{dominates} configuration $B$ on delivery
+rate and bandwidth cost if
+      $\delta_A \geq \delta_B$ and $(\beta/P)_A \leq (\beta/P)_B$,
+      with at least one strict inequality.
+\end{definition}
+
+We exclude latency from the dominance computation because Floodsub achieves
+the lowest latency (0.4\,s p99). Including latency would prevent any
+configuration from strictly dominating Floodsub, obscuring the clear
+delivery-cost advantage of Gossipsub. Latency is instead encoded as marker
+shape for visual inspection.
+
+For the dominance plot, we aggregate simulation results to worst-case metrics
+across churn regimes using Algorithm~\ref{alg:aggregate}.
+
+\begin{algorithm}[H]
+\caption{Worst-Case Aggregation Across Churn Regimes}
+\label{alg:aggregate}
+\begin{algorithmic}[1]
+\Require Raw results $\mathcal{R} = \{(D, \Dlazy, c, \bar{\delta}, \beta_{\mathit{norm}}, \mathit{p99})\}$ for all configurations
+\Ensure Aggregated results $\mathcal{A}$
+\State $\mathcal{A} \gets \emptyset$
+\ForAll{unique $(D, \Dlazy)$ pairs in $\mathcal{R}$}
+    \State $\mathcal{R}_{D,\Dlazy} \gets \{r \in \mathcal{R} : r.D = D \land r.\Dlazy = \Dlazy\}$
+    \State $\delta^* \gets \min_{r \in \mathcal{R}_{D,\Dlazy}} r.\bar{\delta}$ \Comment{Worst (minimum) delivery}
+    \State $\beta^*_{\mathit{norm}} \gets \max_{r \in \mathcal{R}_{D,\Dlazy}} r.\beta_{\mathit{norm}}$ \Comment{Worst (maximum) cost}
+    \State $\ell^* \gets \max_{r \in \mathcal{R}_{D,\Dlazy}} r.\mathit{p99}$ \Comment{Worst (maximum) latency}
+    \State $\mathcal{A} \gets \mathcal{A} \cup \{(D, \Dlazy, \delta^*, \beta^*_{\mathit{norm}}, \ell^*)\}$
+\EndFor
+\State \Return $\mathcal{A}$
+\end{algorithmic}
+\end{algorithm}
+
+Algorithm~\ref{alg:pareto} computes the 2D Pareto frontier over delivery rate and cost.
+Latency ($\ell^*$) is retained in the aggregated results for visualization but
+is not used in the dominance check.
+
+\begin{algorithm}[H]
+\caption{Compute 2D Pareto Frontier}
+\label{alg:pareto}
+\begin{algorithmic}[1]
+\Require Aggregated results $\mathcal{A} = \{(D, \Dlazy, \delta^*, \beta^*_{\mathit{norm}}, \ell^*)\}$
+\Ensure Pareto-optimal set $\mathcal{P} \subseteq \mathcal{A}$
+\Function{Dominates}{$A$, $B$} \Comment{Does $A$ dominate $B$ on delivery rate and cost?}
+    \State \Return $(\delta^*_A \geq \delta^*_B) \land (\beta^*_{\mathit{norm},A} \leq \beta^*_{\mathit{norm},B})$
+    \Statex \hspace{\algorithmicindent} $\land \; \bigl((\delta^*_A > \delta^*_B) \lor (\beta^*_{\mathit{norm},A} < \beta^*_{\mathit{norm},B})\bigr)$
+\EndFunction
+\State $\mathcal{P} \gets \mathcal{A}$
+\ForAll{$A \in \mathcal{A}$}
+    \ForAll{$B \in \mathcal{A} \setminus \{A\}$}
+        \If{\Call{Dominates}{$B$, $A$}}
+            \State $\mathcal{P} \gets \mathcal{P} \setminus \{A\}$
+            \State \textbf{break}
+        \EndIf
+    \EndFor
+\EndFor
+\State \Return $\mathcal{P}$
+\end{algorithmic}
+\end{algorithm}
+
+
+\end{document}

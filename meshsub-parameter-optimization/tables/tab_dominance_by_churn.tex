@@ -1,0 +1,19 @@
+\begin{table}[t]
+      \centering
+      \caption{Gossipsub configurations dominating Floodsub at each churn level.
+            Minimal gossip ($\Dlazy{=}1$) with sparse mesh exceeds Floodsub delivery
+            at every churn level while achieving substantial cost savings.}
+      \label{tab:dominance-by-churn}
+      \small
+      \begin{tabular}{lcccc}
+            \toprule
+            \textbf{Churn} & \textbf{Floodsub} & \textbf{Gossipsub} & \textbf{GS Delivery} & \textbf{Cost Savings} \\
+            \midrule
+            0\% & 100.0\% & (4, 1) & 100.0\% & 15$\times$ \\
+            10\% & 97.1\% & (2, 1) & 98.4\% & 35$\times$ \\
+            20\% & 95.2\% & (2, 1) & 96.9\% & 33$\times$ \\
+            30\% & 93.3\% & (2, 1) & 94.9\% & 31$\times$ \\
+            40\% & 91.8\% & (2, 1) & 93.3\% & 29$\times$ \\
+            \bottomrule
+      \end{tabular}
+\end{table}

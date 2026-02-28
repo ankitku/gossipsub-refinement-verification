@@ -1,0 +1,22 @@
+\begin{table}[t]
+      \centering
+      \caption{Representative configurations across the reliability-efficiency-latency
+            spectrum (worst-case across churn regimes). Gossipsub configurations
+            with $\Dlazy{=}1$ achieve higher delivery than Floodsub at lower cost;
+            Floodsub's only advantage is latency.}
+      \label{tab:recommendations}
+      \begin{tabular}{ccrrr}
+            \toprule
+            $D$ & $\Dlazy$ & Delivery & p99 Latency & Cost ($\beta/P$) \\
+            \midrule
+            2  & 1 & 93.3\% & 4.3\,s & 2$\times$ \\
+            4  & 1 & 94.9\% & 21.6\,s & 5$\times$ \\
+            8  & 1 & 96.9\% & 17.0\,s & 17$\times$ \\
+            12  & 1 & 97.5\% & 12.9\,s & 38$\times$ \\
+            14  & 1 & 97.7\% & 10.8\,s & 53$\times$ \\
+            \midrule
+            \multicolumn{5}{l}{\textit{Floodsub reference ($D{=}60$, $\Dlazy{=}0$)}} \\
+            60  & 0 & 91.8\% & 0.4\,s & 60$\times$ \\
+            \bottomrule
+      \end{tabular}
+\end{table}

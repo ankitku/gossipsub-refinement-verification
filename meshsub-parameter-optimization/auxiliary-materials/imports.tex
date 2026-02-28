@@ -1,0 +1,497 @@
+% =============================================================================
+% PACKAGE IMPORTS
+% =============================================================================
+
+\usepackage{amsthm}
+\interdisplaylinepenalty=2500
+\usepackage{mathrsfs}
+\usepackage{array}
+\usepackage{lstautogobble}
+\usepackage{dsfont}
+\usepackage[scaled]{beramono}
+\usepackage{xifthen}
+\usepackage{xspace}
+\usepackage{framed}
+\usepackage{mathtools}
+\usepackage{xspace}
+\usepackage{mdframed}
+\usepackage[noabbrev,nameinlink]{cleveref}
+\usepackage{changepage}
+\usepackage{bm}
+
+% =============================================================================
+% MATH OPERATORS AND DELIMITERS
+% =============================================================================
+
+\DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
+\DeclarePairedDelimiter\autobracket{(}{)}
+\newcommand{\br}[1]{\autobracket*{#1}}
+\newcommand{\etal}{\textit{et al}\xspace}
+
+% =============================================================================
+% CUSTOM ENVIRONMENTS
+% =============================================================================
+
+\newcounter{definition}  % Define a new counter 'definition'
+\renewcommand{\thedefinition}{\thesection.\arabic{definition}}
+
+\numberwithin{figure}{section}
+
+% Define the 'definition' environment with left line
+\newenvironment{definition}[1][]{%
+    \refstepcounter{definition}%
+    \begin{mdframed}[
+            linewidth=1.5pt,  % Width of the border line
+            linecolor=black,  % Color of the border line
+            hidealllines=true, leftline=true,  % Show only left line
+            innerleftmargin=10pt,  % Adjust inner left margin
+            skipabove=10pt,  % Space above the framed environment
+            skipbelow=6pt  % Space below the framed environment
+        ]
+        \noindent \textbf{Definition \thedefinition\ (#1)} \itshape
+        }{%
+    \end{mdframed}
+}
+
+\newcounter{condition}  % Define a new counter 'condition'
+
+% Define the 'condition' environment with left line
+\newenvironment{condition}[1][]{%
+    \refstepcounter{condition}%
+    \begin{mdframed}[
+            innerleftmargin=10pt,  % Adjust inner left margin
+            skipabove=10pt,  % Space above the framed environment
+            skipbelow=10pt  % Space below the framed environment
+        ]
+        \noindent \textbf{Condition \thecondition\ (#1)} \itshape
+        }{%
+    \end{mdframed}
+    \vspace{20pt}
+}
+
+% =============================================================================
+% THEOREM ENVIRONMENTS
+% =============================================================================
+
+\newcommand{\TODO}{{\textcolor{red}{\textbf{TODO}}}}
+% \newcommand{\cnr}[1]{\textcolor{magenta}{Cristina says: {#1}}}
+\newtheorem{invariant}{Invariant}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{conjecture}{Conjecture}[section]
+\newtheorem{corollary}{Corollary}[section]
+\newtheorem{lemma}{Lemma}[theorem]
+\newtheorem{problem}{Problem}
+\newtheorem{goal}{Goal}[theorem]
+\newtheorem{claim}{Claim}[section]
+\newtheorem{hypothesis}{Hypothesis}[section]
+
+% =============================================================================
+% LOGICAL OPERATORS
+% =============================================================================
+
+\newcommand{\frall}[2]{\ensuremath{\langle\forall{#1}::{#2}\rangle}}
+\newcommand{\exi}[2]{\ensuremath{\langle\exists{#1}::{#2}\rangle}}
+\newcommand{\lam}[2]{\ensuremath{\langle\lambda{#1}::{#2}\rangle}}
+
+% =============================================================================
+% TOOL AND LANGUAGE SHORTCUTS
+% =============================================================================
+
+%\newcommand{\TODO}[0]{\textcolor{red}{TODO}}
+\newcommand{\N}[0]{\mathds{N}}
+\newcommand{\U}[0]{\mathsf{U}}
+\newcommand{\X}[0]{\mathsf{X}}
+\newcommand{\acs}[0]{\textsc{ACL2s}}
+\newcommand{\acl}[0]{\textsc{ACL2}}
+\newcommand{\pr}[0]{\textsc{Promela}}
+\newcommand{\ko}[0]{\textsc{Korg}}
+\newcommand{\spn}[0]{\textsc{SPIN}}
+\newcommand{\ie}{\emph{i.e.}\xspace}
+\newcommand{\eg}{\emph{e.g.}\xspace}
+
+% =============================================================================
+% BOOLEAN VALUES
+% =============================================================================
+
+\newcommand{\true}{\underline{\mathit{true}}}
+\newcommand{\false}{\underline{\mathit{false}}}
+
+% =============================================================================
+% MATHEMATICAL SETS AND TYPES
+% =============================================================================
+
+\newcommand{\nat}[0]{\ensuremath{\mathds{N}}}
+\newcommand{\rat}[0]{\ensuremath{\mathds{R}}}
+\newcommand{\G}[0]{\ensuremath{\mathcal{G}}}
+\newcommand{\T}[0]{\ensuremath{\mathcal{T}}}
+\newcommand{\C}[0]{\ensuremath{\mathcal{C}}}
+\newcommand{\F}[0]{\ensuremath{\mathcal{F}}}
+\newcommand{\M}[0]{\ensuremath{\mathcal{M}}}
+\newcommand{\E}[0]{\ensuremath{\mathcal{E}}}
+\renewcommand{\P}[0]{\ensuremath{\mathcal{P}}}
+\newcommand{\Q}[0]{\ensuremath{\mathcal{Q}}}
+\newcommand{\R}[0]{\ensuremath{\mathcal{R}}}
+\newcommand{\I}[0]{\ensuremath{\mathcal{I}}}
+% =============================================================================
+% PROTOCOL MESSAGE TYPES
+% =============================================================================
+
+\newcommand{\RCV}[0]{\ensuremath{\texttt{RCV}}}
+\newcommand{\SND}[0]{\ensuremath{\texttt{SND}}}
+\newcommand{\rs}[0]{\ensuremath{\texttt{RSeen}}\xspace}
+\newcommand{\hb}[0]{\ensuremath{\texttt{H}}}
+\newcommand{\mhb}[0]{\ensuremath{\texttt{Mhb}}}
+\newcommand{\HBM}[0]{\ensuremath{\texttt{HBM}}}
+\newcommand{\GRAFT}[0]{\ensuremath{\texttt{GRAFT}}}
+\newcommand{\PRUNE}[0]{\ensuremath{\texttt{PRUNE}}}
+\newcommand{\IHAVE}[0]{\ensuremath{\texttt{IHAVE}}}
+\newcommand{\IWANT}[0]{\ensuremath{\texttt{IWANT}}}
+\newcommand{\SUBSCRIBE}[0]{\ensuremath{\texttt{SUBSCRIBE}}}
+\newcommand{\UNSUBSCRIBE}[0]{\ensuremath{\texttt{UNSUBSCRIBE}}}
+\newcommand{\draw}[0]{\ensuremath{\texttt{draw}}}
+% =============================================================================
+% PROTOCOL STATE COMPONENTS
+% =============================================================================
+
+\newcommand{\pdg}[0]{\ensuremath{\texttt{Pdg}}\xspace}
+\newcommand{\ctrl}[0]{\ensuremath{\texttt{Ctrl}}\xspace}
+\newcommand{\seen}[0]{\ensuremath{\texttt{Seen}}\xspace}
+\newcommand{\delv}[0]{\ensuremath{\texttt{Delivered}}\xspace}
+\newcommand{\pts}[0]{\ensuremath{\texttt{Ptscore}}\xspace}
+\newcommand{\psc}[0]{\ensuremath{\texttt{Pscore}}\xspace}
+\newcommand{\act}[0]{\ensuremath{\texttt{Act}}\xspace}
+\newcommand{\nbrs}[0]{\ensuremath{\texttt{Nbrs}}\xspace}
+\newcommand{\subs}[0]{\ensuremath{\texttt{Subs}}\xspace}
+\newcommand{\pubs}[0]{\ensuremath{\texttt{Pubs}}\xspace}
+\newcommand{\pld}[0]{\codify{Payload}\xspace}
+\newcommand{\org}[0]{\codify{Origin}\xspace}
+\newcommand{\ts}[0]{\codify{Timestamp}}
+\newcommand{\fanout}[0]{\ensuremath{\texttt{Fanout}}\xspace}
+\newcommand{\mesh}[0]{\ensuremath{\texttt{Mesh}}\xspace}
+% =============================================================================
+% REFINEMENT FUNCTIONS
+% =============================================================================
+
+\newcommand{\erankt}[0]{\ensuremath{\mathit{rankt}}}
+\newcommand{\erankl}[0]{\ensuremath{\mathit{rankl}}}
+\newcommand{\pms}[1][]{\ensuremath{\mathcal{P}}\xspace\ifthenelse{\isempty{#1}}{}{(#1)}}
+\newcommand{\fb}[1][]{\ensuremath{\codify{f2b}}\xspace\ifthenelse{\isempty{#1}}{}{(#1)}}
+\newcommand{\mf}[1][]{\ensuremath{\codify{m2f}}\xspace\ifthenelse{\isempty{#1}}{}{(#1)}}
+\newcommand{\gm}[1][]{\ensuremath{\codify{g2m}}\xspace\ifthenelse{\isempty{#1}}{}{(#1)}}
+
+
+% =============================================================================
+% SET OPERATIONS
+% =============================================================================
+
+\providecommand*\uadd{\ensuremath{{: \! \! \cup \! \! =}}}
+\providecommand*\usub{\ensuremath{: \! \! \setminus \! \! \! =}}
+
+\usepackage{makecell}
+\usepackage{url}
+\usepackage[numbers]{natbib}
+
+% =============================================================================
+% BLOCKCHAIN AND TECHNOLOGY SHORTCUTS
+% =============================================================================
+
+\newcommand{\bc}{BitCoin}
+\newcommand{\fc}{FileCoin}
+\newcommand{\Eth}{Eth2.0}
+\newcommand{\OldEth}{Eth1.0}
+\newcommand{\score}{score function}
+\newcommand{\Score}{Score Function}
+\newcommand{\acls}{ACL2s}
+\newcommand{\golang}{Golang}
+\newcommand{\js}{Javascript}
+
+% =============================================================================
+% PROTOCOL CONSTANTS
+% =============================================================================
+
+\newcommand{\BLOCKS}{\texttt{BLOCKS}}
+\newcommand{\MESSAGES}{\texttt{MESSAGES}}
+\newcommand{\AGG}{\texttt{AGG}}
+\newcommand{\SUBONE}{\texttt{SUB1}}
+\newcommand{\SUBTWO}{\texttt{SUB2}}
+\newcommand{\SUBTHREE}{\texttt{SUB3}}
+
+% =============================================================================
+% PROTOCOL DATA STRUCTURES
+% =============================================================================
+
+\newcommand{\group}{\codify{Group}}
+\newcommand{\p}{\codify{peer-id}}
+\newcommand{\vrb}{\codify{verb}}
+\newcommand{\ps}{\codify{peer-state}}
+\newcommand{\nts}{\codify{nbr-topic-state}}
+\newcommand{\mst}{\codify{msgs-state}}
+\newcommand{\tctrs}{\codify{topic-counters}}
+\newcommand{\gctrs}{\codify{global-counters}}
+\newcommand{\nbrscores}{\codify{nbr-scores}}
+\newcommand{\topic}{\codify{Topic}}
+\newcommand{\evnt}{\codify{evnt}}
+% =============================================================================
+% PROTOCOL METRICS AND SCORING
+% =============================================================================
+
+\newcommand{\Dmesh}{\ensuremath{D}\xspace}
+\newcommand{\Dh}{\ensuremath{D_{\mathit{hi}}}\xspace}
+\newcommand{\Do}{\ensuremath{D_{\mathit{lo}}}\xspace}
+\newcommand{\Dlazy}{\ensuremath{D_{\mathit{lazy}}}\xspace}
+
+
+\newcommand{\hbm}{heart beat maintenance}
+\newcommand{\twp}{\codify{twp}}
+\newcommand{\mt}{\codify{meshTime}}
+\newcommand{\imd}{\codify{invalidMessageDeliveries}}
+\newcommand{\mmd}{\codify{meshMessageDeliveries}}
+\newcommand{\fmd}{\codify{firstMessageDeliveries}}
+\newcommand{\mmdt}{\codify{meshMessageDeliveriesThreshold}}
+\newcommand{\bb}{\codify{badBehaviours}}
+\newcommand{\trc}{\codify{trace}}
+\newcommand{\ptt}{\codify{pt-tctrs-map}}
+% =============================================================================
+% TEMPORAL LOGIC AND COLORS
+% =============================================================================
+
+\newcommand{\fin}{\textbf{F}}
+\newcommand{\glb}{\textbf{G}}
+\newcommand{\red}{\mbox{red}}
+\newcommand{\blue}{\mbox{blue}}
+\newcommand{\green}{\mbox{green}}
+
+% =============================================================================
+% FORMATTING FIXES
+% =============================================================================
+
+\makeatletter
+\let\sv@thm\@thm
+\def\@thm{\let\indent\relax\sv@thm}
+\makeatother
+
+% =============================================================================
+% GRAPHICS AND VISUALIZATION
+% =============================================================================
+
+\usepackage{tikz}
+\usetikzlibrary{positioning, shapes.geometric, backgrounds}
+\usepackage{tikzscale}
+
+\usepackage{mathtools}
+\let\labelindent\relax
+\usepackage{enumerate}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}
+
+% =============================================================================
+% AUTHOR COMMENT COLORS
+% =============================================================================
+
+\newcommand{\cnr}[1]{{\color{RubineRed}{[Cristina: #1]}}}
+\newcommand{\mvh}[1]{{\color{Aquamarine}{[Max: #1]}}}
+\newcommand{\pete}[1]{{\color{Purple}{[Pete: #1]}}}
+\newcommand{\ankit}[1]{{\color{Green}{[Ankit: #1]}}}
+
+\renewcommand{\arraystretch}{1.75}
+
+% =============================================================================
+% ADDITIONAL MATH AND GRAPHICS PACKAGES
+% =============================================================================
+
+\usepackage{physics}
+\usepackage{tikz}
+\usepackage{mathdots}
+\usepackage{yhmath}
+\usepackage{cancel}
+\usepackage{color}
+\usepackage{siunitx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{amssymb}
+\usepackage{gensymb}
+\usepackage{tabularx}
+\usepackage{extarrows}
+\usepackage{booktabs}
+\usetikzlibrary{fadings}
+\usetikzlibrary{patterns}
+\usetikzlibrary{shadows.blur}
+\usetikzlibrary{shapes}
+
+\usepackage{adjustbox}
+\usepackage{float}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.8}
+
+\usepackage{derivative}
+\usepackage{stmaryrd}
+
+% =============================================================================
+% FONT COMMANDS
+% =============================================================================
+
+\newcommand*{\funcfont}{\fontfamily{lmss}\selectfont}
+\newcommand*{\codefont}{\ttfamily\small}
+
+\DeclareTextFontCommand{\funcfontify}{\funcfont}
+\DeclareTextFontCommand{\codefontify}{\codefont}
+\newcommand{\codify}[1]{\ensuremath{\mbox{\codefontify{#1}}}}
+
+% =============================================================================
+% NETWORK PROTOCOL SHORTCUTS
+% =============================================================================
+
+\newcommand{\bnet}{\codify{Broadcastsub}\xspace}
+\newcommand{\fnet}{\codify{Floodsub}\xspace}
+\newcommand{\mnet}{\codify{Meshsub}\xspace}
+\newcommand{\snet}{\codify{Scoredsub}\xspace}
+\newcommand{\gnet}{\codify{Gossipsub}\xspace}
+
+% =============================================================================
+% PROTOCOL PREDICATES AND FUNCTIONS
+% =============================================================================
+
+\newcommand{\app}{\mathbin{\mathord{+\mkern-10mu+}}}
+
+\newcommand{\pid}{\funcfontify{pid}}
+\newcommand{\hash}{\funcfontify{hash}}
+\newcommand{\dom}{\funcfontify{dom}}
+\newcommand{\rng}{\funcfontify{rng}}
+\newcommand{\bnp}{\funcfontify{bp}}
+\newcommand{\fnp}{\funcfontify{fp}}
+\newcommand{\gfnp}{\funcfontify{goodfp}}
+\newcommand{\gmnp}{\funcfontify{goodmp}}
+\newcommand{\mnp}{\funcfontify{mp}}
+\newcommand{\gnp}{\funcfontify{gp}}
+% =============================================================================
+% PROTOCOL STATES
+% =============================================================================
+
+\newcommand{\bs}{\ensuremath{\textit{BS}}}
+\newcommand{\fs}{\ensuremath{\textit{FS}}}
+\newcommand{\ms}{\ensuremath{\textit{MS}}}
+\newcommand{\gfs}{\ensuremath{\textit{GOODFS}}}
+\newcommand{\gs}{\ensuremath{\textit{GS}}}
+% =============================================================================
+% LANGUAGE KEYWORDS AND DATA STRUCTURE OPERATIONS
+% =============================================================================
+
+\newcommand{\owise}{\ensuremath{\mbox{\underline{otherwise}}}\xspace}
+\newcommand{\leta}{\ensuremath{\mbox{\underline{let}}}\xspace}
+\newcommand{\ifa}{\ensuremath{\mbox{\underline{if}}}\xspace}
+\newcommand{\fst}{\ensuremath{\mbox{\underline{first}}}\xspace}
+\newcommand{\snd}{\ensuremath{\mbox{\underline{second}}}\xspace}
+\newcommand{\pref}{\ensuremath{\mbox{\underline{prefix}}}\xspace}
+\newcommand{\suff}{\ensuremath{\mbox{\underline{suffix}}}\xspace}
+\newcommand{\sela}{\ensuremath{\mbox{\underline{select}}}\xspace}
+\newcommand{\thena}{\ensuremath{\mbox{\underline{then}}}\xspace}
+\newcommand{\elsea}{\ensuremath{\mbox{\underline{else}}}\xspace}
+\newcommand{\skipa}{\ensuremath{\mbox{\underline{skip}}}\xspace}
+\newcommand{\gena}{\ensuremath{\mbox{\underline{gen}}}\xspace}
+\newcommand{\heada}{\ensuremath{\mbox{\underline{head}}}\xspace}
+\newcommand{\taila}{\ensuremath{\mbox{\underline{tail}}}\xspace}
+\newcommand{\ina}{\ensuremath{\mbox{\underline{in}}}\xspace}
+\newcommand{\mxa}{\ensuremath{M \! \! \times \! \! A}}
+\newcommand{\ctlx}{\ensuremath{CTL^{*} \!  \! \setminus \! \! X}}
+\newcommand{\emp}{\ensuremath{\mbox{\underline{empty}}}\xspace}
+\newcommand{\frnt}{\ensuremath{\mbox{\underline{front}}}\xspace}
+\newcommand{\enq}{\ensuremath{\mbox{\underline{enqueue}}}\xspace}
+\newcommand{\deq}{\ensuremath{\mbox{\underline{dequeue}}}\xspace}
+\newcommand{\ext}{\ensuremath{\mbox{\underline{extend}}}\xspace}
+\newcommand{\del}{\ensuremath{\mbox{\underline{delete}}}\xspace}
+\newcommand{\cnt}{\ensuremath{\mbox{\underline{count}}}\xspace}
+\newcommand{\len}{\ensuremath{\mbox{\underline{length}}}\xspace}
+
+% =============================================================================
+% PROTOCOL ACTIONS - BROADCAST
+% =============================================================================
+
+\newcommand{\bcast}{\codify{Broadcast}\xspace}
+\newcommand{\prep}{\codify{Prepare}\xspace}
+\newcommand{\skp}{\codify{Skip}\xspace}
+\newcommand{\bjoin}{\codify{BJoin}\xspace}
+\newcommand{\bleave}{\codify{BLeave}\xspace}
+\newcommand{\bsub}{\codify{BSubscribe}\xspace}
+\newcommand{\bunsub}{\codify{BUnsubscribe}\xspace}
+% =============================================================================
+% PROTOCOL ACTIONS - FLOODSUB
+% =============================================================================
+\newcommand{\hasmsgp}{\mathit{hasMsgp}\xspace}
+\newcommand{\mnbrp}{\mathit{mNbrp}\xspace}
+\newcommand{\activep}{\mathit{activep}\xspace}
+\newcommand{\msubsp}{\mathit{mSubsp}\xspace}
+
+\newcommand{\fprd}{\codify{FProduce}\xspace}
+\newcommand{\ffwd}{\codify{FForward}\xspace}
+\newcommand{\fjoin}{\codify{FJoin}\xspace}
+\newcommand{\fleave}{\codify{FLeave}\xspace}
+\newcommand{\fsub}{\codify{FSubscribe}\xspace}
+\newcommand{\funsub}{\codify{FUnsubscribe}\xspace}
+% =============================================================================
+% PROTOCOL ACTIONS - MESHSUB
+% =============================================================================
+
+\newcommand{\mprd}{\codify{MProduce}\xspace}
+\newcommand{\mfwd}{\codify{MForward}\xspace}
+\newcommand{\mgsp}{\codify{MGossip}\xspace}
+\newcommand{\mgspr}{\codify{MPldReq}\xspace}
+\newcommand{\mgsps}{\codify{MPldSnd}\xspace}
+\newcommand{\mjoin}{\codify{MJoin}\xspace}
+\newcommand{\mleave}{\codify{MLeave}\xspace}
+\newcommand{\msub}{\codify{MSubscribe}\xspace}
+\newcommand{\munsub}{\codify{MUnsubscribe}\xspace}
+\newcommand{\mupscore}{\codify{MUpdateScores}\xspace}
+\newcommand{\maddm}{\codify{MAddMesh}\xspace}
+\newcommand{\mremm}{\codify{MRemMesh}\xspace}
+\newcommand{\maddf}{\codify{MAddFanout}\xspace}
+\newcommand{\mremf}{\codify{RemFanout}\xspace}
+\newcommand{\mgraft}{\codify{MGraft}\xspace}
+\newcommand{\mprune}{\codify{MPrune}\xspace}
+\newcommand{\mfanm}{\codify{MFanoutMnt}\xspace}
+\newcommand{\mmeshm}{\codify{MMeshMnt}\xspace}
+\newcommand{\mhbm}{\codify{MHBM}\xspace}
+% =============================================================================
+% PROTOCOL ACTIONS - GOSSIPSUB
+% =============================================================================
+
+\newcommand{\gprd}{\codify{GProduce}\xspace}
+\newcommand{\gfwd}{\codify{GForward}\xspace}
+\newcommand{\ggsp}{\codify{GGossip}\xspace}
+\newcommand{\ggspr}{\codify{GGossipReq}\xspace}
+\newcommand{\ggsps}{\codify{GGossipSnd}\xspace}
+\newcommand{\gjoin}{\codify{GJoin}\xspace}
+\newcommand{\gleave}{\codify{GLeave}\xspace}
+\newcommand{\gsub}{\codify{GSubscribe}\xspace}
+\newcommand{\gunsub}{\codify{GUnsubscribe}\xspace}
+\newcommand{\gupscore}{\codify{GUpdateScores}\xspace}
+\newcommand{\gaddm}{\codify{GAddMesh}\xspace}
+\newcommand{\gremm}{\codify{GPruneMesh}\xspace}
+\newcommand{\gaddf}{\codify{GAddFanout}\xspace}
+\newcommand{\gremf}{\codify{GPruneFanout}\xspace}
+
+
+% =============================================================================
+% CODE LISTINGS CONFIGURATION
+% =============================================================================
+
+\lstdefinelanguage{acl2s}{
+    keywords={defdata,definecd,definec,defun,defund,lambda,property,record,list,cons,match,alistof,enum,listof,alistof,range,sig,mget,mset,map,map*,reduce,reduce*},
+    alsoletter={-},
+    otherkeywords={:hyps,:name,:fixed-vars,defdata-alias,defdata-subtype,create-map*,create-reduce*,check=},
+    comment=[l]{;;}
+}
+
+\lstset{
+    numbers=none,
+    language=acl2s,
+    stringstyle=\ttfamily\small,
+    basicstyle=\ttfamily\small,
+    commentstyle=\ttfamily\itshape\color{gray},
+    tabsize=2,
+    showspaces=false,
+    showstringspaces=false,
+    autogobble=true,
+    backgroundcolor=\color{Goldenrod!10},
+    breaklines
+}

@@ -1,0 +1,19 @@
+\begin{table}[t]
+      \centering
+      \caption{Diminishing returns of gossip degree ($D{=}8$, 30\% churn).
+            Increasing $\Dlazy$ from 1 to 33 improves delivery by only
+            0.4 percentage points while increasing traffic 21$\times$.}
+      \label{tab:gossip-cost}
+      \begin{tabular}{crrrr}
+            \toprule
+            $\Dlazy$ & Delivery & $\Delta$ Delivery & Total Traffic & Traffic Mult. \\
+            \midrule
+             1 & 97.0\% &        --- & 8.3\,GB & 1$\times$ \\
+             5 & 99.3\% &    +2.3 pp & 49.9\,GB & 6$\times$ \\
+             9 & 99.5\% &    +2.5 pp & 102.8\,GB & 12$\times$ \\
+            13 & 99.6\% &    +2.6 pp & 125.6\,GB & 15$\times$ \\
+            17 & 99.8\% &    +2.8 pp & 133.4\,GB & 16$\times$ \\
+            21 & 99.8\% &    +2.8 pp & 147.4\,GB & 18$\times$ \\
+            \bottomrule
+      \end{tabular}
+\end{table}
